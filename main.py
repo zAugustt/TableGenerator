@@ -1,8 +1,12 @@
 import openpyxl
 import os
 from docx import Document
-from docx.shared import Pt
+from docx.shared import Pt, Inches
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from docx.enum.text import WD_UNDERLINE
+from docx.oxml import OxmlElement
 from tkinter import Tk, filedialog, Label, Button, Entry, StringVar, OptionMenu, Frame, Spinbox
+
 
 def format_headers(headers: list[str]) -> list[str]:
     """
@@ -42,7 +46,7 @@ def read_excel(file_path: str) -> dict[str, dict[str, list[str]]]:
         )]
 
         try:
-            start_index = values.index(1) + 2
+            start_index = values.index(1) + 1
             filtered_headers = headers[start_index:]
             filtered_headers = format_headers(filtered_headers)
             filtered_values = values[start_index:]
@@ -73,12 +77,25 @@ def get_questions(file_path: str) -> list[str]:
     return questions
 
 
-def style_table(table, args: dict[str, str]) -> None:    
+def style_table(table, args: dict[str, str]) -> None:
     """
     Styles the table based on the provided arguments.
     :param table: The table to be styled.
     :param args: Dictionary containing report options such as total position, font type, font size, ordering, etc.
     """
+
+    # for row in table.rows:
+    #     for i, cell in enumerate(row.cells):
+    #         if i == 0:
+    #             cell.width = Inches(1)
+    #         else:
+    #             cell.width = Inches(1.5)
+
+    # Remove gridlines
+    # tbl = table._tbl
+    # for tblBorders in tbl.xpath(".//w:tblBorders"):
+    #     tblBorders.getparent().remove(tblBorders)
+
     if args.get("font_type"):
         for row in table.rows:
             for cell in row.cells:
@@ -89,12 +106,45 @@ def style_table(table, args: dict[str, str]) -> None:
             for cell in row.cells:
                 for paragraph in cell.paragraphs:
                     paragraph.text = paragraph.text.upper()
+    for row in table.rows:
+        for i, cell in enumerate(row.cells):
+            for paragraph in cell.paragraphs:
+                if "total" in paragraph.text.lower():
+                    for run in paragraph.runs:
+                        if args.get("total_position") == "inline":
+                            run.bold = True
+                            run.underline = WD_UNDERLINE.SINGLE
+                        else:
+                            run.bold = True
+                            run.italic = True
+                            run.text = run.text.upper()
 
-    # TODO: Formatting totals on top, bottom or inline (selector) [top/bottom BOLD/ITAL/CAPS, else BOLD/UNDER/TITLE]
+                    connected_cell = row.cells[i - 1] if args.get("header_side") == "Right" else row.cells[i + 1]
+                    for connected_paragraph in connected_cell.paragraphs:
+                        for connected_run in connected_paragraph.runs:
+                            if args.get("total_position") == "inline":
+                                connected_run.bold = True
+                                connected_run.underline = WD_UNDERLINE.SINGLE
+                            else:
+                                connected_run.bold = True
+                                connected_run.italic = True
+                                connected_run.text = connected_run.text.upper()
+
+    # TODO: Formatting totals on top, bottom or inline (selector)
     return table
 
 
-def write_doc(data: dict[str, dict[str, list[str]]], questions: list[str], output_path: str, args: dict[str, str]) -> None:
+def add_percentages_to_values(value: str) -> str:
+    percentage_dict = ["--", "*"]
+    if value in percentage_dict:
+        return str(value)
+    elif value is not None:
+        return str(value) + "%"
+    else:
+        return ""
+
+def write_doc(data: dict[str, dict[str, list[str]]], questions: list[str], output_path: str,
+              args: dict[str, str]) -> None:
     """
     Writes dictionaries of headers and values into tables in a .docx file.
     :param data: Dictionary with sheet names as keys and dictionaries of headers and values as values.
@@ -105,23 +155,30 @@ def write_doc(data: dict[str, dict[str, list[str]]], questions: list[str], outpu
 
     document = Document()
     i = 0
+    other_dict = ["other", "unsure", "refused", "no opinion"]
     for sheet_name, content in data.items():
         document.add_heading(sheet_name, level=1)
         document.add_paragraph(questions[i])
-        if (args.get("ordering") == "Vertical"):
+        if args.get("ordering") == "Vertical":
             table = document.add_table(rows=0, cols=2)
             table.style = 'Table Grid'
-            if args.get("header_side") == "Right":
-                for header, value in zip(content["headers"], content["values"]):
-                    row = table.add_row()
-                    row.cells[0].text = str(value) + "%" if value is not None else ""
+            for header, value in zip(content["headers"], content["values"]):
+                if header and (header.lower() in other_dict or "total" in header.lower()):
+                    blank_row = table.add_row()
+                    blank_row.cells[0].text = ""
+                    blank_row.cells[1].text = ""
+                row = table.add_row()
+                if args.get("header_side") == "Right":
+                    value_cell = row.cells[0]
+                    value_cell.text = add_percentages_to_values(value)
+                    value_cell.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
                     row.cells[1].text = str(header) if header is not None else ""
-            else:
-                for header, value in zip(content["headers"], content["values"]):
-                    row = table.add_row()
-                    row.cells[1].text = str(value) + "%" if value is not None else ""
+                else:
+                    value_cell = row.cells[1]
+                    value_cell.text = add_percentages_to_values(value)
+                    value_cell.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
                     row.cells[0].text = str(header) if header is not None else ""
-    
+
         elif args.get("ordering") == "Horizontal":
             num_cols = len(content["headers"])
             table = document.add_table(rows=2, cols=num_cols)
@@ -129,11 +186,12 @@ def write_doc(data: dict[str, dict[str, list[str]]], questions: list[str], outpu
             for col, header in enumerate(content["headers"]):
                 table.cell(0, col).text = str(header) if header is not None else ""
             for col, value in enumerate(content["values"]):
-                table.cell(1, col).text = str(value) + "%" if value is not None else ""
-            
+                value_cell = table.cell(1, col)
+                value_cell.text = str(value) + "%" if value is not None else ""
+                value_cell.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
         style_table(table, args)
-        i+=1
+        i += 1
 
     document.save(output_path)
 
@@ -151,6 +209,8 @@ def run_report(file_path: str, args: dict[str, str]) -> None:
         output_file_path = file_path[:-5] + suffix + ".docx"
     elif file_path.lower().endswith('.xls'):
         output_file_path = file_path[:-4] + suffix + ".docx"
+    else:
+        exit("Invalid input file")
     questions = get_questions(file_path)
     write_doc(excel_data, questions, output_file_path, args)
     print(f"Report written to {output_file_path}")
@@ -171,6 +231,7 @@ def open_gui() -> None:
     file_frame.pack(pady=10)
     file_label = Label(file_frame, text="No file selected")
     file_label.pack(side="left")
+
     def select_file():
         path = filedialog.askopenfilename(
             title="Select Excel File",
@@ -178,6 +239,7 @@ def open_gui() -> None:
         )
         file_var.set(path)
         file_label.config(text=os.path.basename(path) if path else "No file selected")
+
     file_var = StringVar()
     Button(
         file_frame,
@@ -212,11 +274,11 @@ def open_gui() -> None:
     Label(root, text="Font Size:").pack()
     font_size_var = StringVar(value="9")
     Spinbox(
-    root,
-    values=tuple(str(i) for i in range(6, 25)),
-    textvariable=font_size_var,
-    width=5,
-    state="readonly"
+        root,
+        values=tuple(str(i) for i in range(6, 25)),
+        textvariable=font_size_var,
+        width=5,
+        state="readonly"
     ).pack()
     font_size_var.set("9")
 
@@ -250,6 +312,7 @@ def open_gui() -> None:
         }
         run_report(file_var.get(), args)
         root.quit()
+
     Button(
         root,
         text="Generate Report",
