@@ -1,6 +1,6 @@
-from tkinter import Tk, filedialog, Label, Button, Entry, StringVar, OptionMenu, Frame, Spinbox
 import os
-from main import run_report
+from tkinter import Tk, filedialog, Label, Button, Entry, StringVar, OptionMenu, Frame, Spinbox, BooleanVar, Checkbutton
+from report_utils import run_report
 
 def open_gui() -> None:
     """
@@ -11,7 +11,7 @@ def open_gui() -> None:
     """
     root = Tk()
     root.title("Report Writer")
-    root.geometry("350x550")
+    root.geometry("350x600")
 
     file_frame = Frame(root)
     file_frame.pack(pady=10)
@@ -84,6 +84,17 @@ def open_gui() -> None:
     ordering_var = StringVar(value="Vertical")
     OptionMenu(root, ordering_var, "Vertical", "Horizontal").pack()
 
+    Label(root, text="\n").pack()
+
+    grid_var = BooleanVar(value=False)
+    Checkbutton(
+        root,
+        text="Keep Gridlines",
+        variable=grid_var,
+        onvalue=True,
+        offvalue=False
+    ).pack()
+
     def on_run():
         if not file_var.get():
             file_label.config(text="Please select a file!")
@@ -94,7 +105,8 @@ def open_gui() -> None:
             "font_size": font_size_var.get(),
             "text_type": text_type_var.get(),
             "header_side": header_side_var.get(),
-            "ordering": ordering_var.get()
+            "ordering": ordering_var.get(),
+            "gridlines": grid_var.get()
         }
         run_report(file_var.get(), args)
         root.quit()

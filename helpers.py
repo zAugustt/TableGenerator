@@ -27,3 +27,8 @@ def add_percentages_to_values(value: str) -> str:
         return str(value) + "%"
     else:
         return ""
+
+def change_header_order(headers: list[str], values: list[float]):
+    """
+    Re-orders the lists to adjust for cases in which we want totals at the bottom or top.
+    """
