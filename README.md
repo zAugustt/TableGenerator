@@ -39,9 +39,13 @@ TableGenerator is a Python application that reads data from Excel files and gene
 The generated `.docx` file will be saved in the same directory as your Excel file, with a suffix indicating the table orientation.
 
 ## Project Structure
-
-- `main.py` - Main application file containing all logic and GUI code
-
+TableGenerator/  
+├── `main.py` - Entry to the program
+├── `gui.py` - GUI-related functionality for user interaction  
+├── `report_utils.py` - Functions for generating the report
+├── `docx_utils.py` - Utility functions for generating and styling Word tables  
+├── `excel_utils.py` - Functions for handling Excel file operations  
+├── `helpers.py` - Helper functions for formatting headers, values, and other data
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.

@@ -82,7 +82,7 @@ def open_gui() -> None:
 
     Label(root, text="\nOrdering:").pack()
     ordering_var = StringVar(value="Vertical")
-    OptionMenu(root, ordering_var, "Vertical", "Horizontal").pack()
+    OptionMenu(root, ordering_var, "Vertical", "Horizontal", "All").pack()
 
     Label(root, text="\n").pack()
 
