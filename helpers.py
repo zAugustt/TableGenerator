@@ -28,7 +28,18 @@ def add_percentages_to_values(value: str) -> str:
     else:
         return ""
 
-def change_header_order(headers: list[str], values: list[float]):
+# Copilot assisted with the list comprehension here
+def move_totals_to_bottom(headers: list[str], values: list[str]) -> tuple[list[str], list[str]]:
     """
-    Re-orders the lists to adjust for cases in which we want totals at the bottom or top.
+    Moves headers containing "total" and their corresponding values to the bottom of the lists.
+    :param headers: List of headers.
+    :param values: List of values corresponding to the headers.
+    :return: Tuple of reordered headers and values.
     """
+    # Separate "total" headers and their values
+    total_items = [(header, value) for header, value in zip(headers, values) if "total" in header.lower()]
+    non_total_items = [(header, value) for header, value in zip(headers, values) if "total" not in header.lower()]
+
+    # Combine non-total items with total items at the end
+    reordered_headers, reordered_values = zip(*(non_total_items + total_items)) if non_total_items or total_items else ([], [])
+    return list(reordered_headers), list(reordered_values)

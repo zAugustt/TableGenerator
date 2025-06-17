@@ -69,7 +69,7 @@ def open_gui() -> None:
     font_size_var.set("9")
 
     total_position_var = StringVar(value="Top")
-    Label(root, text="\nTotals Position: (Not implemented)").pack()
+    Label(root, text="\nTotals Position:").pack()
     OptionMenu(root, total_position_var, "Top", "Bottom", "Inline").pack()
 
     Label(root, text="\nText Type:").pack()
