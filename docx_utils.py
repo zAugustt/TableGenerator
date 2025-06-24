@@ -21,7 +21,8 @@ def initialize_args(args: dict[str, str]) -> None:
         "gridlines": args.get("gridlines", False),
         "font_size": int(args.get("font_size", 12)),
         "font_type": args.get("font_type", ""),
-        "text_type": args.get("text_type", "")
+        "text_type": args.get("text_type", ""),
+        "margin": float(args.get("margin", ""))
     }
 
 
@@ -63,9 +64,9 @@ def style_table(table) -> None:
     for row in table.rows:
         for i, cell in enumerate(row.cells):
             if ARGS["header_side"] == "Right" and i == 0:
-                cell.width = Inches(1.5)
+                cell.width = Inches(ARGS["margin"])
             elif ARGS["header_side"] == "Left" and i != 0:
-                cell.width = Inches(1.5)
+                cell.width = Inches(ARGS["margin"])
 
     if not ARGS["gridlines"]:
         remove_table_borders(table)
@@ -119,20 +120,30 @@ def gen_vert_table(document: Document, content: dict[str, list[str]], other_dict
     """
     table = document.add_table(rows=0, cols=2)
     table.style = 'Table Grid'
-
+    other_space_flag = False
     for header, value in zip(content["headers"], content["values"]):
-        if header and (header.lower() in other_dict or "total" in header.lower()):
-            if ARGS["total_position"] in {"Inline", "Bottom"}:
-                blank_row = table.add_row()
-                blank_row.cells[0].text = ""
-                blank_row.cells[1].text = ""
-            row = table.add_row()
-            if ARGS["total_position"] == "Top":
-                blank_row = table.add_row()
-                blank_row.cells[0].text = ""
-                blank_row.cells[1].text = ""
+
+        # TODO: Currently disabled automatic spacing, implement it without extra spacing.
+        if header:
+            if header.lower() in other_dict and not other_space_flag:
+                pass
+            elif "total" in header.lower:
+                pass
         else:
-            row = table.add_row()
+            exit("Error occurred with headers, exiting program")
+        row = table.add_row()
+        # if header and (header.lower() in other_dict or "total" in header.lower()):
+        #     if ARGS["total_position"] in {"Inline", "Bottom"}:
+        #         blank_row = table.add_row()
+        #         blank_row.cells[0].text = ""
+        #         blank_row.cells[1].text = ""
+        #     row = table.add_row()
+        #     if ARGS["total_position"] == "Top":
+        #         blank_row = table.add_row()
+        #         blank_row.cells[0].text = ""
+        #         blank_row.cells[1].text = ""
+        # else:
+        #     row = table.add_row()
         if ARGS["header_side"] == "Right":
             value_cell = row.cells[0]
             value_cell.text = add_percentages_to_values(value)
@@ -201,6 +212,8 @@ def write_doc(data: dict[str, dict[str, list[str]]], questions: list[str], outpu
             table_v = gen_vert_table(document, content, other_dict)
             style_table(table_v)
             document.add_paragraph("\n")
+            if ARGS["total_position"] != "Inline":
+                content["headers"], content["values"] = move_totals(content["headers"], content["values"], "Top")
             table_h = gen_horiz_table(document, content)
             style_table(table_h)
             document.add_page_break()

@@ -11,7 +11,7 @@ def open_gui() -> None:
     """
     root = Tk()
     root.title("Report Writer")
-    root.geometry("350x600")
+    root.geometry("350x650")
 
     file_frame = Frame(root)
     file_frame.pack(pady=10)
@@ -84,6 +84,10 @@ def open_gui() -> None:
     ordering_var = StringVar(value="Vertical")
     OptionMenu(root, ordering_var, "Vertical", "Horizontal", "All").pack()
 
+    Label(root, text="\nMargin size:").pack()
+    margin_var = StringVar(value="1.0")
+    Entry(root, textvariable=margin_var).pack()
+
     Label(root, text="\n").pack()
 
     grid_var = BooleanVar(value=False)
@@ -106,7 +110,8 @@ def open_gui() -> None:
             "text_type": text_type_var.get(),
             "header_side": header_side_var.get(),
             "ordering": ordering_var.get(),
-            "gridlines": grid_var.get()
+            "gridlines": grid_var.get(),
+            "margin": margin_var.get()
         }
         run_report(file_var.get(), args)
         root.quit()
@@ -118,4 +123,5 @@ def open_gui() -> None:
         activebackground="#cccccc",
         activeforeground="#000000"
     ).pack(pady=10)
+
     root.mainloop()
