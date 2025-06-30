@@ -124,13 +124,13 @@ def gen_vert_table(document: Document, content: dict[str, list[str]], other_dict
     for header, value in zip(content["headers"], content["values"]):
 
         # TODO: Currently disabled automatic spacing, implement it without extra spacing.
-        if header:
-            if header.lower() in other_dict and not other_space_flag:
-                pass
-            elif "total" in header.lower:
-                pass
-        else:
-            exit("Error occurred with headers, exiting program")
+        # if header:
+        #     if header.lower() in other_dict and not other_space_flag:
+        #         pass
+        #     elif "total" in header.lower():
+        #         pass
+        # else:
+        #     exit("Error occurred with headers, exiting program")
         row = table.add_row()
         # if header and (header.lower() in other_dict or "total" in header.lower()):
         #     if ARGS["total_position"] in {"Inline", "Bottom"}:
@@ -170,10 +170,10 @@ def gen_horiz_table(document: Document, content: dict[str, list[str]]):
     table = document.add_table(rows=2, cols=num_cols)
     table.style = 'Table Grid'
     for col, header in enumerate(content["headers"]):
-        table.cell(0, col).text = str(header) if header is not None else ""
+        table.cell(0, col).text = str(header) if header is not None else "  "
     for col, value in enumerate(content["values"]):
         value_cell = table.cell(1, col)
-        value_cell.text = str(value) + "%" if value is not None else ""
+        value_cell.text = str(value) + "%  " if value is not None else "  "
         value_cell.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
     return table
