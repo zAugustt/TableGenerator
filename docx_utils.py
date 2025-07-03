@@ -95,7 +95,8 @@ def style_table(table) -> None:
                             run.italic = True
                             run.text = run.text.upper()
 
-                    connected_cell = row.cells[i - 1] if ARGS["header_side"] == "Right" else row.cells[i + 1]
+                    connected_cell = row.cells[i - 1] \
+                        if (ARGS["header_side"] == "Right" and ARGS["ordering"] == "Vertical") else row.cells[i + 1]
                     for connected_paragraph in connected_cell.paragraphs:
                         for connected_run in connected_paragraph.runs:
                             if ARGS["total_position"] == "Inline":
