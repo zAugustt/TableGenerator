@@ -35,21 +35,32 @@ def read_excel(file_path: str) -> dict[str, dict[str, list[str]]]:
     return data
 
 
-def get_questions(file_path: str) -> list[str]:
+def get_question_data(file_path: str) -> list[list[str]]:
     """
-    Reads an Excel file and extracts the questions on each sheet
+    Reads an Excel file and extracts the prerequisite data on each sheet
     :param file_path: Absolute path to file
     """
     workbook = openpyxl.load_workbook(file_path)
-    questions = []
+    pre_data = []
     for sheet_name in workbook.sheetnames:
         sheet = workbook[sheet_name]
 
         headers = [row[0] for row in sheet.iter_rows(
             min_row=1, max_row=sheet.max_row, min_col=1, max_col=1, values_only=True
         )]
-        questions.append(headers[2])
-    return questions
+
+        try:
+            # Magic line - Essentially searches through the list by enumerating the list, then checking the instance
+            # to make sure it's a string, then searching to see if it contains the string
+            end_index = next(
+                (i for i, header in enumerate(headers) if isinstance(header, str) and "BASE=TOTAL" in header), -1) - 1
+            filtered_headers = headers[:end_index]
+        except ValueError:
+            filtered_headers = []
+
+        pre_data.append(filtered_headers)
+
+    return pre_data
 
 
 

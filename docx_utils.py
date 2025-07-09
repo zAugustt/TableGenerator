@@ -56,17 +56,37 @@ def remove_table_borders(table):
         tbl_pr.append(parse_xml(borders_xml))
 
 
+def set_table_margin(table, margin: Inches) -> None:
+    """
+    Explicitly sets the margin when the headers are on the left of a vertical table
+    :param table: The table object from python-docx.
+    :param margin: The margin value in inches.
+    """
+    tbl = table._tbl  # Access the table's XML
+    margin_twips = int(margin * 1440)  # Convert inches to twips (1 inch = 1440 twips)
+    tbl_pr = tbl.tblPr  # Access the table properties
+
+    # Add or modify the <w:tblInd> property
+    tbl_ind_xml = f'<w:tblInd {nsdecls("w")} w:w="{margin_twips}" w:type="dxa"/>'
+    tbl_pr.append(parse_xml(tbl_ind_xml))
+
+
 def style_table(table) -> None:
     """
     Styles the table based on the provided arguments.
     :param table: The table to be styled.
     """
-    for row in table.rows:
-        for i, cell in enumerate(row.cells):
-            if ARGS["header_side"] == "Right" and i == 0:
-                cell.width = Inches(ARGS["margin"])
-            elif ARGS["header_side"] == "Left" and i != 0:
-                cell.width = Inches(ARGS["margin"])
+
+    if ARGS["ordering"] == "Vertical":
+        for row in table.rows:
+            for i, cell in enumerate(row.cells):
+                if ARGS["header_side"] == "Right" and i == 0:
+                    cell.width = Inches(ARGS["margin"])
+                elif ARGS["header_side"] == "Left" and i != 0:
+                    cell.width = Inches(ARGS["margin"])
+
+        if ARGS["header_side"] == "Left":
+            set_table_margin(table, ARGS["margin"])
 
     if not ARGS["gridlines"]:
         remove_table_borders(table)
@@ -180,12 +200,12 @@ def gen_horiz_table(document: Document, content: dict[str, list[str]]):
     return table
 
 
-def write_doc(data: dict[str, dict[str, list[str]]], questions: list[str], output_path: str,
+def write_doc(data: dict[str, dict[str, list[str]]], pre_data: list[list[str]], output_path: str,
               args: dict[str, str]) -> None:
     """
     Writes dictionaries of headers and values into tables in a .docx file.
     :param data: Dictionary with sheet names as keys and dictionaries of headers and values as values.
-    :param questions: List of question associated with each sheet.
+    :param pre_data: List of pre-data content associated with each sheet.
     :param output_path: Path to save the generated Word document.
     :param args: Dictionary containing report options such as total position, font type, font size, ordering, etc.
     """
@@ -198,7 +218,8 @@ def write_doc(data: dict[str, dict[str, list[str]]], questions: list[str], outpu
 
     for sheet_name, content in data.items():
         document.add_heading(sheet_name, level=1)
-        document.add_paragraph(questions[i])
+        for question_data in pre_data[i]:
+            document.add_paragraph(question_data)
 
         if ARGS["total_position"] == "Bottom":
             content["headers"], content["values"] = move_totals(content["headers"], content["values"], "Bottom")
@@ -211,16 +232,19 @@ def write_doc(data: dict[str, dict[str, list[str]]], questions: list[str], outpu
             table = gen_horiz_table(document, content)
         else:
             table_v = gen_vert_table(document, content, other_dict)
+            ARGS["ordering"] = "Vertical"
             style_table(table_v)
             document.add_paragraph("\n")
             if ARGS["total_position"] != "Inline":
                 content["headers"], content["values"] = move_totals(content["headers"], content["values"], "Top")
             table_h = gen_horiz_table(document, content)
+            ARGS["ordering"] = "Horizontal"
             style_table(table_h)
             document.add_page_break()
+            ARGS["ordering"] = "Both"
 
+        i += 1
         if ARGS["ordering"] == "Vertical" or ARGS["ordering"] == "Horizontal":
-            i += 1
             style_table(table)
             if i % 2 == 0:
                 document.add_page_break()

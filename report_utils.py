@@ -1,5 +1,5 @@
 from docx_utils import write_doc
-from excel_utils import read_excel, get_questions
+from excel_utils import read_excel, get_question_data
 
 def run_report(file_path: str, args: dict[str, str]) -> None:
     """
@@ -16,6 +16,6 @@ def run_report(file_path: str, args: dict[str, str]) -> None:
         output_file_path = file_path[:-4] + suffix + ".docx"
     else:
         exit("Invalid input file")
-    questions = get_questions(file_path)
-    write_doc(excel_data, questions, output_file_path, args)
+    pre_data = get_question_data(file_path)
+    write_doc(excel_data, pre_data, output_file_path, args)
     print(f"Report written to {output_file_path}")
