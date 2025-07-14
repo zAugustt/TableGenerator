@@ -46,6 +46,7 @@ TableGenerator/
 ├── `docx_utils.py` - Utility functions for generating and styling Word tables  
 ├── `excel_utils.py` - Functions for handling Excel file operations  
 ├── `helpers.py` - Helper functions for formatting headers, values, and other data
+
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
