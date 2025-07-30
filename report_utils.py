@@ -9,7 +9,7 @@ def run_report(file_path: str, args: dict[str, str]) -> None:
     :param args: Dictionary containing report options such as total position, font type, font size, and custom title.
     """
     suffix = "_v" if args.get("ordering") == "Vertical" else "_h" if args.get("ordering") == "Horizontal" else "_b"
-    excel_data = read_excel(file_path)
+    excel_data = read_excel(file_path, args.get("extra_columns_flag", False), int(args.get("extra_columns", 0)))
     if file_path.lower().endswith('.xlsx'):
         output_file_path = file_path[:-5] + suffix + ".docx"
     elif file_path.lower().endswith('.xls'):

@@ -22,7 +22,8 @@ def initialize_args(args: dict[str, str]) -> None:
         "font_size": int(args.get("font_size", 12)),
         "font_type": args.get("font_type", ""),
         "text_type": args.get("text_type", ""),
-        "margin": float(args.get("margin", ""))
+        "margin": float(args.get("margin", "")),
+        "extra_cols": args.get("extra_columns_flag", False)
     }
 
 
@@ -96,11 +97,13 @@ def style_table(table) -> None:
             for cell in row.cells:
                 for paragraph in cell.paragraphs:
                     paragraph.text = paragraph.text.upper()
+                    
     if ARGS["font_type"]:
         for row in table.rows:
             for cell in row.cells:
-                cell.paragraphs[0].runs[0].font.name = ARGS["font_type"]
-                cell.paragraphs[0].runs[0].font.size = Pt(ARGS["font_size"])
+                if cell.paragraphs and cell.paragraphs[0].runs:
+                    cell.paragraphs[0].runs[0].font.name = ARGS["font_type"]
+                    cell.paragraphs[0].runs[0].font.size = Pt(ARGS["font_size"])
 
     for row in table.rows:
         for i, cell in enumerate(row.cells):
@@ -130,50 +133,31 @@ def style_table(table) -> None:
     return table
 
 
-def gen_vert_table(document: Document, content: dict[str, list[str]], other_dict: list[str]):
+def gen_vert_table(document: Document, content: dict[str, list[str]]):
     """
     Generates a vertical table in a Word document based on the provided content and styles it according to ARGS.
 
     :param document: The Word document object where the table will be added.
     :param content: A dictionary containing "headers" and "values" as keys with their respective lists.
-    :param other_dict: A list of specific headers (e.g., "other", "unsure", etc.) to handle differently.
     :return: The generated and styled vertical table object.
     """
-    table = document.add_table(rows=0, cols=2)
-    table.style = 'Table Grid'
-    other_space_flag = False
-    for header, value in zip(content["headers"], content["values"]):
 
-        # TODO: Currently disabled automatic spacing, implement it without extra spacing.
-        # if header:
-        #     if header.lower() in other_dict and not other_space_flag:
-        #         pass
-        #     elif "total" in header.lower():
-        #         pass
-        # else:
-        #     exit("Error occurred with headers, exiting program")
+    num_cols = 2 + len(content.get("values")) - 1
+    table = document.add_table(rows=0, cols=num_cols)
+    table.style = 'Table Grid'
+    for header, values in zip(content["headers"], zip(*content["values"])):
         row = table.add_row()
-        # if header and (header.lower() in other_dict or "total" in header.lower()):
-        #     if ARGS["total_position"] in {"Inline", "Bottom"}:
-        #         blank_row = table.add_row()
-        #         blank_row.cells[0].text = ""
-        #         blank_row.cells[1].text = ""
-        #     row = table.add_row()
-        #     if ARGS["total_position"] == "Top":
-        #         blank_row = table.add_row()
-        #         blank_row.cells[0].text = ""
-        #         blank_row.cells[1].text = ""
-        # else:
-        #     row = table.add_row()
         if ARGS["header_side"] == "Right":
-            value_cell = row.cells[0]
-            value_cell.text = add_percentages_to_values(value)
-            value_cell.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
-            row.cells[1].text = str(header) if header is not None else ""
+            for col, value in enumerate(values):
+                value_cell = row.cells[col]
+                value_cell.text = add_percentages_to_values(value)
+                value_cell.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+            row.cells[num_cols - 1].text = str(header) if header is not None else ""
         else:
-            value_cell = row.cells[1]
-            value_cell.text = add_percentages_to_values(value)
-            value_cell.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+            for col, value in enumerate(values):
+                value_cell = row.cells[col + 1]
+                value_cell.text = add_percentages_to_values(value)
+                value_cell.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
             row.cells[0].text = str(header) if header is not None else ""
 
     return table
@@ -188,14 +172,16 @@ def gen_horiz_table(document: Document, content: dict[str, list[str]]):
     :return: The generated horizontal table object.
     """
     num_cols = len(content["headers"])
-    table = document.add_table(rows=2, cols=num_cols)
+    num_rows = 2 + len(content.get("values")) - 1
+    table = document.add_table(rows=num_rows, cols=num_cols)
     table.style = 'Table Grid'
     for col, header in enumerate(content["headers"]):
         table.cell(0, col).text = str(header) if header is not None else "  "
-    for col, value in enumerate(content["values"]):
-        value_cell = table.cell(1, col)
-        value_cell.text = str(value) + "%  " if value is not None else "  "
-        value_cell.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    for row, values in enumerate(content["values"]):
+        for col, value in enumerate(values):
+            value_cell = table.cell(row+1, col)
+            value_cell.text = add_percentages_to_values(value)
+            value_cell.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
     return table
 
@@ -213,30 +199,29 @@ def write_doc(data: dict[str, dict[str, list[str]]], pre_data: list[list[str]], 
 
     document = Document()
     i = 0
-    other_dict = ["other", "unsure", "refused", "no opinion", "unsure / refused"] \
-        if ARGS["total_position"] == "Inline" else []
 
     for sheet_name, content in data.items():
         document.add_heading(sheet_name, level=1)
         for question_data in pre_data[i]:
             document.add_paragraph(question_data)
-
-        if ARGS["total_position"] == "Bottom":
-            content["headers"], content["values"] = move_totals(content["headers"], content["values"], "Bottom")
-        elif ARGS["total_position"] == "Top":
-            content["headers"], content["values"] = move_totals(content["headers"], content["values"], "Top")
+        for i, values in enumerate(content["values"]):
+            if ARGS["total_position"] == "Bottom":
+                content["headers"], content["values"][i] = move_totals(content["headers"], values, "Bottom")
+            elif ARGS["total_position"] == "Top":
+                content["headers"], content["values"][i] = move_totals(content["headers"], values, "Top")
 
         if ARGS["ordering"] == "Vertical":
-            table = gen_vert_table(document, content, other_dict)
+            table = gen_vert_table(document, content)
         elif ARGS["ordering"] == "Horizontal":
             table = gen_horiz_table(document, content)
         else:
-            table_v = gen_vert_table(document, content, other_dict)
+            table_v = gen_vert_table(document, content)
             ARGS["ordering"] = "Vertical"
             style_table(table_v)
             document.add_paragraph("\n")
-            if ARGS["total_position"] != "Inline":
-                content["headers"], content["values"] = move_totals(content["headers"], content["values"], "Top")
+            for i, values in enumerate(content["values"]):
+                if ARGS["total_position"] != "Inline":
+                    content["headers"], content["values"][i] = move_totals(content["headers"], values, "Top")
             table_h = gen_horiz_table(document, content)
             ARGS["ordering"] = "Horizontal"
             style_table(table_h)

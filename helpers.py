@@ -24,10 +24,10 @@ def add_percentages_to_values(value: str) -> str:
     :return: The formatted value as a string with a percentage symbol, or the original value if it is in the exception list.
     """
     percentage_dict = ["--", "*"]
-    if value in percentage_dict:
-        return str(value)
-    elif value is not None:
+    if str(value).isnumeric():
         return str(value) + "%"
+    elif value is not None or value in percentage_dict:
+        return str(value)
     else:
         return ""
 

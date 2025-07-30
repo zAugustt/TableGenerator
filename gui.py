@@ -2,6 +2,7 @@ import os
 from tkinter import Tk, filedialog, Label, Button, Entry, StringVar, OptionMenu, Frame, Spinbox, BooleanVar, Checkbutton
 from report_utils import run_report
 
+
 def open_gui() -> None:
     """
     Opens a GUI for selecting an Excel file and configuring report options.
@@ -10,7 +11,7 @@ def open_gui() -> None:
     The GUI uses Tkinter for the interface.
     """
     root = Tk()
-    root.title("Report Writer")
+    root.title("Table Generator")
     root.geometry("350x650")
 
     file_frame = Frame(root)
@@ -88,8 +89,6 @@ def open_gui() -> None:
     margin_var = StringVar(value="1.0")
     Entry(root, textvariable=margin_var).pack()
 
-    Label(root, text="\n").pack()
-
     grid_var = BooleanVar(value=False)
     Checkbutton(
         root,
@@ -98,6 +97,30 @@ def open_gui() -> None:
         onvalue=True,
         offvalue=False
     ).pack()
+
+    extra_var = BooleanVar(value=False)
+    extra_num_var = StringVar(value="3")  # Default value for the number
+
+    def toggle_entry():
+        if extra_var.get():
+            extra_entry.config(state="normal")
+        else:
+            extra_entry.config(state="disabled")
+
+    extra_frame = Frame(root)
+    extra_frame.pack()
+
+    Checkbutton(
+        extra_frame,
+        text="Subsets",
+        variable=extra_var,
+        onvalue=True,
+        offvalue=False,
+        command=toggle_entry
+    ).pack(side="left")
+
+    extra_entry = Entry(extra_frame, textvariable=extra_num_var, state="disabled", width=5)
+    extra_entry.pack(side="left")
 
     def on_run():
         if not file_var.get():
@@ -111,7 +134,9 @@ def open_gui() -> None:
             "header_side": header_side_var.get(),
             "ordering": ordering_var.get(),
             "gridlines": grid_var.get(),
-            "margin": margin_var.get()
+            "margin": margin_var.get(),
+            "extra_columns_flag": extra_var.get(),
+            "extra_columns": extra_num_var.get()
         }
         run_report(file_var.get(), args)
         root.quit()
