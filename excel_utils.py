@@ -1,6 +1,7 @@
 import openpyxl
 from helpers import format_headers, format_values
 
+
 def read_excel(file_path: str, extra_columns_flag: bool, num_extra_cols: int) -> dict[str, dict[str, list[str]]]:
     """
     Reads an Excel file and extracts headers from the first column and values from the second column
@@ -20,11 +21,11 @@ def read_excel(file_path: str, extra_columns_flag: bool, num_extra_cols: int) ->
         )]
 
         values = [[row[0] for row in sheet.iter_rows(
-                    min_row=1, max_row=sheet.max_row, min_col=2, max_col=2, values_only=True
-                )]]
+            min_row=1, max_row=sheet.max_row, min_col=2, max_col=2, values_only=True
+        )]]
 
         if extra_columns_flag:
-            for col in range(3, 3+num_extra_cols):
+            for col in range(3, 3 + num_extra_cols):
                 values.append([
                     row[0] for row in sheet.iter_rows(
                         min_row=1, max_row=sheet.max_row, min_col=col, max_col=col, values_only=True
@@ -34,22 +35,22 @@ def read_excel(file_path: str, extra_columns_flag: bool, num_extra_cols: int) ->
         try:
             start_index = values[0].index(1) + 1
             filtered_headers = format_headers(headers[start_index:])
-            # if extra_columns_flag:
-            #     filtered_headers.insert(0, "Subsets")
-            #     filtered_values = [value[start_index - 2:] for value in values]
-            #     filtered_values = [value[:1] + value[2:] for value in filtered_values]
-            # else:
-            #     filtered_values = [value[start_index:] for value in values]
             filtered_values = [value[start_index:] for value in values]
-            filtered_values = [format_values(value) for value in filtered_values]
+            filtered_values = [format_values(values) for values in filtered_values]
+            subsets = []
+            if extra_columns_flag:
+                subsets = [value[start_index - 2][1:] for value in values]
+                subsets.insert(0, 'Subsets')
 
         except ValueError:
             filtered_headers = []
             filtered_values = []
+            subsets = []
 
         data[sheet_name] = {
             "headers": filtered_headers,
-            "values": filtered_values
+            "values": filtered_values,
+            "subsets": subsets
         }
 
     return data
@@ -81,6 +82,3 @@ def get_question_data(file_path: str) -> list[list[str]]:
         pre_data.append(filtered_headers)
 
     return pre_data
-
-
-

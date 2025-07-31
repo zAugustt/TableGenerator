@@ -78,6 +78,7 @@ def style_table(table) -> None:
     :param table: The table to be styled.
     """
 
+    # Styles Margin
     if ARGS["ordering"] == "Vertical":
         for row in table.rows:
             for i, cell in enumerate(row.cells):
@@ -89,15 +90,18 @@ def style_table(table) -> None:
         if ARGS["header_side"] == "Left":
             set_table_margin(table, ARGS["margin"])
 
+    # Determines gridlines visibility
     if not ARGS["gridlines"]:
         remove_table_borders(table)
 
+    # Styles text to be all caps
     if ARGS["text_type"] == "All Caps":
         for row in table.rows:
             for cell in row.cells:
                 for paragraph in cell.paragraphs:
                     paragraph.text = paragraph.text.upper()
-                    
+
+    # Styles font with size and type
     if ARGS["font_type"]:
         for row in table.rows:
             for cell in row.cells:
@@ -105,6 +109,7 @@ def style_table(table) -> None:
                     cell.paragraphs[0].runs[0].font.name = ARGS["font_type"]
                     cell.paragraphs[0].runs[0].font.size = Pt(ARGS["font_size"])
 
+    # Styles text depending on specific total positions which determine underlined/italicized/etc.
     for row in table.rows:
         for i, cell in enumerate(row.cells):
             for paragraph in cell.paragraphs:
@@ -133,6 +138,34 @@ def style_table(table) -> None:
     return table
 
 
+def populate_subset_row(table, subsets, header_side):
+    """
+    Populates a row in the table with subsets based on the header_side.
+    :param table: The table object from python-docx.
+    :param subsets: List of subsets to populate the row.
+    :param header_side: Determines whether 'Subsets' is placed on the left or right.
+    """
+    row = table.add_row()
+    if header_side == "Right":
+        for col, subset in enumerate(subsets[1:]):
+            subset_cell = row.cells[col]
+            subset_cell.text = subset
+            subset_cell.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+        subset_cell = row.cells[len(subsets) - 1]
+        subset_cell.text = subsets[0]
+        subset_cell.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    elif header_side == "Left":
+        subset_cell = row.cells[0]
+        subset_cell.text = subsets[0]
+        subset_cell.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+        for col, subset in enumerate(subsets[1:], start=1):
+            subset_cell = row.cells[col]
+            subset_cell.text = subset
+            subset_cell.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+
 def gen_vert_table(document: Document, content: dict[str, list[str]]):
     """
     Generates a vertical table in a Word document based on the provided content and styles it according to ARGS.
@@ -141,10 +174,11 @@ def gen_vert_table(document: Document, content: dict[str, list[str]]):
     :param content: A dictionary containing "headers" and "values" as keys with their respective lists.
     :return: The generated and styled vertical table object.
     """
-
     num_cols = 2 + len(content.get("values")) - 1
     table = document.add_table(rows=0, cols=num_cols)
     table.style = 'Table Grid'
+    if content["subsets"]:
+        populate_subset_row(table, content["subsets"], ARGS["header_side"])
     for header, values in zip(content["headers"], zip(*content["values"])):
         row = table.add_row()
         if ARGS["header_side"] == "Right":
@@ -171,7 +205,7 @@ def gen_horiz_table(document: Document, content: dict[str, list[str]]):
     :param content: A dictionary containing "headers" and "values" as keys with their respective lists.
     :return: The generated horizontal table object.
     """
-    num_cols = len(content["headers"])
+    num_cols = len(content["headers"]) + (1 if content["subsets"] else 0)
     num_rows = 2 + len(content.get("values")) - 1
     table = document.add_table(rows=num_rows, cols=num_cols)
     table.style = 'Table Grid'
@@ -212,8 +246,15 @@ def write_doc(data: dict[str, dict[str, list[str]]], pre_data: list[list[str]], 
 
         if ARGS["ordering"] == "Vertical":
             table = gen_vert_table(document, content)
+            style_table(table)
         elif ARGS["ordering"] == "Horizontal":
             table = gen_horiz_table(document, content)
+            style_table(table)
+            if content["subsets"]:
+                for i, subset in enumerate(content["subsets"]):
+                    subset_cell = table.cell(i, len(table.rows[0].cells) - 1)
+                    subset_cell.text = subset
+                    subset_cell.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         else:
             table_v = gen_vert_table(document, content)
             ARGS["ordering"] = "Vertical"
@@ -225,12 +266,16 @@ def write_doc(data: dict[str, dict[str, list[str]]], pre_data: list[list[str]], 
             table_h = gen_horiz_table(document, content)
             ARGS["ordering"] = "Horizontal"
             style_table(table_h)
+            if content["subsets"]:
+                for i, subset in enumerate(content["subsets"]):
+                    subset_cell = table_h.cell(i, len(table_h.rows[0].cells) - 1)
+                    subset_cell.text = subset
+                    subset_cell.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
             document.add_page_break()
             ARGS["ordering"] = "Both"
 
         i += 1
         if ARGS["ordering"] == "Vertical" or ARGS["ordering"] == "Horizontal":
-            style_table(table)
             if i % 2 == 0:
                 document.add_page_break()
 
