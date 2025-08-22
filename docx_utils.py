@@ -238,11 +238,10 @@ def write_doc(data: dict[str, dict[str, list[str]]], pre_data: list[list[str]], 
         document.add_heading(sheet_name, level=1)
         for question_data in pre_data[i]:
             document.add_paragraph(question_data)
-        for i, values in enumerate(content["values"]):
-            if ARGS["total_position"] == "Bottom":
-                content["headers"], content["values"][i] = move_totals(content["headers"], values, "Bottom")
-            elif ARGS["total_position"] == "Top":
-                content["headers"], content["values"][i] = move_totals(content["headers"], values, "Top")
+        if ARGS["total_position"] == "Bottom":
+            content["headers"], content["values"] = move_totals(content["headers"], content["values"], "Bottom")
+        elif ARGS["total_position"] == "Top":
+            content["headers"], content["values"] = move_totals(content["headers"], content["values"], "Top")
 
         if ARGS["ordering"] == "Vertical":
             table = gen_vert_table(document, content)
@@ -251,8 +250,8 @@ def write_doc(data: dict[str, dict[str, list[str]]], pre_data: list[list[str]], 
             table = gen_horiz_table(document, content)
             style_table(table)
             if content["subsets"]:
-                for i, subset in enumerate(content["subsets"]):
-                    subset_cell = table.cell(i, len(table.rows[0].cells) - 1)
+                for j, subset in enumerate(content["subsets"]):
+                    subset_cell = table.cell(j, len(table.rows[0].cells) - 1)
                     subset_cell.text = subset
                     subset_cell.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         else:
@@ -260,15 +259,14 @@ def write_doc(data: dict[str, dict[str, list[str]]], pre_data: list[list[str]], 
             ARGS["ordering"] = "Vertical"
             style_table(table_v)
             document.add_paragraph("\n")
-            for i, values in enumerate(content["values"]):
-                if ARGS["total_position"] != "Inline":
-                    content["headers"], content["values"][i] = move_totals(content["headers"], values, "Top")
+            if ARGS["total_position"] != "Inline":
+                content["headers"], content["values"] = move_totals(content["headers"], content["values"], "Top")
             table_h = gen_horiz_table(document, content)
             ARGS["ordering"] = "Horizontal"
             style_table(table_h)
             if content["subsets"]:
-                for i, subset in enumerate(content["subsets"]):
-                    subset_cell = table_h.cell(i, len(table_h.rows[0].cells) - 1)
+                for j, subset in enumerate(content["subsets"]):
+                    subset_cell = table_h.cell(j, len(table_h.rows[0].cells) - 1)
                     subset_cell.text = subset
                     subset_cell.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
             document.add_page_break()

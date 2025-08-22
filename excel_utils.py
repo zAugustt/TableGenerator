@@ -40,7 +40,7 @@ def read_excel(file_path: str, extra_columns_flag: bool, num_extra_cols: int) ->
             subsets = []
             if extra_columns_flag:
                 subsets = [value[start_index - 2][1:] for value in values]
-                subsets.insert(0, 'Subsets')
+                subsets.insert(0, ' ')
 
         except ValueError:
             filtered_headers = []
